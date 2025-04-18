@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Options Flow Terminal</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -10,9 +11,6 @@
       background-color: #0f1115;
       color: white;
       font-family: 'Segoe UI', sans-serif;
-    }
-    .container-fluid {
-      padding: 1rem;
     }
     table {
       width: 100%;
@@ -32,190 +30,56 @@
       background-color: #22252c;
       cursor: pointer;
     }
-    .highlight {
+    .highlight.call {
+      background-color: #00b894;
       border-radius: 10px;
       padding: 2px 6px;
       color: white;
-      font-weight: 500;
-    }
-    .highlight.call {
-      background-color: #00b894;
     }
     .highlight.put {
       background-color: #d63031;
-    }
-    #filters {
-      background-color: #1a1c20;
-      padding: 1rem;
-      border-radius: 12px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.3);
-    }
-    #filters label {
-      display: block;
-      margin-top: 1rem;
-      font-size: 0.85rem;
-      text-transform: uppercase;
-      color: #aaa;
-    }
-    #filters input, #filters select {
-      width: 100%;
-      padding: 8px;
-      margin-top: 4px;
-      background: #2c2f35;
+      border-radius: 10px;
+      padding: 2px 6px;
       color: white;
-      border: 1px solid #444;
-      border-radius: 6px;
-      font-size: 0.9rem;
-    }
-    .range-group {
-      display: flex;
-      gap: 10px;
-    }
-    .range-group input {
-      flex: 1;
-    }
-    .modal-chart {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0, 0, 0, 0.95);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 9999;
-      transform: scale(0.7);
-    }
-    .modal-content {
-      background: #1c1f26;
-      padding: 16px;
-      border-radius: 8px;
-      width: 95vw;
-      height: 80vh;
-      display: flex;
-      flex-direction: column;
-    }
-    .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-    .modal-header h2 {
-      margin: 0;
-      font-size: 1.2em;
-    }
-    .close {
-      font-size: 1.2em;
-      cursor: pointer;
-    }
-    canvas {
-      flex-grow: 1;
     }
   </style>
 </head>
 <body>
-  <div class="container-fluid">
-    <div class="row">
-      <div class="col-md-2" id="filters">
-        <label>Tickers (comma separated)</label>
-        <input id="filterTickers" placeholder="AAPL,TSLA">
-
-        <label>Type</label>
-        <select id="filterType">
-          <option>Both</option><option>Call</option><option>Put</option>
-        </select>
-
-        <label>Side</label>
-        <select id="filterSide">
-          <option>All</option><option>Bid</option><option>Ask</option>
-        </select>
-
-        <label>Size Range</label>
-        <div class="range-group">
-          <input id="filterSizeMin" type="number" placeholder="Min" value="0">
-          <input id="filterSizeMax" type="number" placeholder="Max" value="99999">
-        </div>
-
-        <label>Premium Range</label>
-        <div class="range-group">
-          <input id="filterPremiumMin" type="number" placeholder="Min" value="0">
-          <input id="filterPremiumMax" type="number" placeholder="Max" value="9999999">
-        </div>
-
-        <label>DTE Range</label>
-        <div class="range-group">
-          <input id="filterDTEMin" type="number" placeholder="Min" value="0">
-          <input id="filterDTEMax" type="number" placeholder="Max" value="999">
-        </div>
-
-        <label><input type="checkbox" id="filterVolumeOI"> Volume > OI</label>
-        <label><input type="checkbox" id="filterMulti"> Multi-leg Only</label>
-      </div>
-      <div class="col-md-10">
-        <table class="table table-dark table-bordered" id="flowTable">
-          <thead><tr>
-            <th>Time</th><th>Ticker</th><th>Side</th><th>Strike</th><th>Type</th><th>Expiry</th>
-            <th>DTE</th><th>Stock</th><th>Bid-Ask</th><th>Spot</th><th>Size</th>
-            <th>Premium</th><th>Volume</th><th>OI</th><th>Chain%</th><th>Multi</th>
-          </tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <!-- Chart Modal -->
-  <div class="modal-chart" id="chartModal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>Contract Chart</h2>
-        <span class="close" onclick="document.getElementById('chartModal').style.display='none'">&times;</span>
-      </div>
-      <canvas id="chartCanvas"></canvas>
-    </div>
+  <div class="container-fluid p-4">
+    <h2 class="mb-4">Live Options Flow</h2>
+    <table class="table table-dark table-bordered" id="flowTable">
+      <thead><tr>
+        <th>Time</th><th>Ticker</th><th>Side</th><th>Strike</th><th>Type</th><th>Expiry</th>
+        <th>DTE</th><th>Stock</th><th>Bid-Ask</th><th>Spot</th><th>Size</th>
+        <th>Premium</th><th>Volume</th><th>OI</th><th>Chain%</th><th>Multi</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
   </div>
 
   <script>
-    const ctx = document.getElementById('chartCanvas').getContext('2d');
-    const chart = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: [],
-        datasets: [
-          {
-            label: 'Contracts',
-            backgroundColor: '#00b894',
-            data: []
-          },
-          {
-            label: 'Spot Price',
-            type: 'line',
-            backgroundColor: 'yellow',
-            borderColor: 'yellow',
-            data: [],
-            yAxisID: 'y1'
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        scales: {
-          y: { beginAtZero: true },
-          y1: { beginAtZero: false, position: 'right' }
-        }
-      }
-    });
+    const socket = new WebSocket("wss://flow-terminal.onrender.com/");
 
-    document.getElementById('flowTable').addEventListener('click', (e) => {
-      const row = e.target.closest('tr');
-      if (!row || !row.cells.length) return;
-      const strike = row.cells[3].innerText;
-      const spot = parseFloat(row.cells[8].innerText.replace('$','')) || 100;
-      chart.data.labels = Array.from({ length: 30 }, (_, i) => i);
-      chart.data.datasets[0].data = Array.from({ length: 30 }, () => Math.floor(Math.random() * 100));
-      chart.data.datasets[1].data = Array.from({ length: 30 }, () => spot + (Math.random() - 0.5) * 5);
-      chart.update();
-      document.getElementById('chartModal').style.display = 'flex';
-    });
+    socket.onmessage = function(event) {
+      const data = JSON.parse(event.data);
+      const table = document.getElementById("flowTable").getElementsByTagName('tbody')[0];
+      const row = table.insertRow(0);
+
+      const typeClass = data.Type === "CALL" ? "highlight call" : "highlight put";
+
+      const cells = [
+        data.Time, data.Ticker, data.Side, data.Strike,
+        `<span class='${typeClass}'>${data.Type}</span>`,
+        data.Expiry, data.DTE, data.Stock, data.BidAsk,
+        data.Spot, data.Size, data.Premium, data.Volume,
+        data.OI, data.ChainPct, data.Multi
+      ];
+
+      for (let cell of cells) {
+        const td = row.insertCell();
+        td.innerHTML = cell;
+      }
+    };
   </script>
 </body>
 </html>
