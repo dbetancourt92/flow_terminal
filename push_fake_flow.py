@@ -1,50 +1,56 @@
 import asyncio
 import websockets
 import json
-from datetime import datetime, timedelta
+from datetime import datetime
 import random
 
-def generate_fake_flow_batch(n=20):
-    tickers = ["AAPL", "TSLA", "NVDA", "SPY", "QQQ"]
-    sides = ["BID", "ASK"]
-    types = ["CALL", "PUT"]
-    now = datetime.now()
-    flow_batch = []
-
-    for _ in range(n):
-        t = random.choice(tickers)
-        s = random.choice(sides)
-        otype = random.choice(types)
-        row = {
-            "time": (now - timedelta(seconds=random.randint(0, 3600))).strftime("%m/%d %H:%M:%S"),
-            "ticker": t,
-            "side": s,
-            "strike": str(random.randint(100, 500)),
-            "type": otype,
-            "expiry": "04/25/2025",
-            "dte": str(random.randint(1, 90)),
-            "stock": "$" + str(round(random.uniform(90, 500), 2)),
-            "bidask": "$1.20 - $1.30",
-            "spot": "$" + str(round(random.uniform(1, 10), 2)),
-            "size": str(random.randint(1, 30)),
-            "premium": f"${random.randint(20, 500)}K",
-            "volume": str(random.randint(100, 10000)),
-            "oi": str(random.randint(100, 20000)),
-            "chain_pct": f"{random.randint(30, 100)}%",
-            "multi": random.choice(["True", "False"]),
-            "sentiment": "Bullish" if otype == "CALL" else "Bearish"
-        }
-        flow_batch.append(row)
-    return flow_batch
-
+# 🔁 This will loop and push new flow data continuously
 async def send_fake_flow():
-    uri = "ws://127.0.0.1:8888"
-    async with websockets.connect(uri) as websocket:
-        await asyncio.sleep(1)
-        while True:
-            flow_batch = generate_fake_flow_batch()
-            for row in flow_batch:
-                await websocket.send(json.dumps(row))
-                await asyncio.sleep(0.2)
+    uri = "wss://flow-terminal.onrender.com"
 
-asyncio.run(send_fake_flow())
+    try:
+        async with websockets.connect(uri) as websocket:
+            print("🔗 Connected to WebSocket server!")
+
+            while True:
+                row = generate_fake_row()
+                try:
+                    await websocket.send(json.dumps(row))
+                    print("✅ Sent:", row)
+                except Exception as e:
+                    print("❌ Failed to send row:", row)
+                    print("🚨 Error:", e)
+                await asyncio.sleep(2)  # Delay between pushes
+
+    except Exception as e:
+        print("❌ Could not connect to WebSocket server")
+        print("🚨 Error:", e)
+
+# 🧪 Generate dummy options flow data
+def generate_fake_row():
+    tickers = ["AAPL", "TSLA", "SPY", "NVDA", "AMD"]
+    sides = ["ASK", "BID", "MID"]
+    types = ["CALL", "PUT"]
+
+    return [
+        datetime.now().strftime("%H:%M:%S"),                       # Time
+        random.choice(tickers),                                   # Ticker
+        random.choice(sides),                                     # Side
+        str(random.randint(100, 500)),                             # Strike
+        opt_type := random.choice(types),                          # Type
+        "04/26/2025",                                              # Expiry
+        str(random.randint(1, 90)),                                # DTE
+        "$" + str(round(random.uniform(90, 500), 2)),              # Stock
+        "$1.25 - $1.40",                                           # Bid-Ask
+        "$" + str(round(random.uniform(0.5, 5.0), 2)),             # Spot
+        str(random.randint(10, 500)),                              # Size
+        f"${random.randint(10, 1000)}K",                           # Premium
+        str(random.randint(100, 5000)),                            # Volume
+        str(random.randint(100, 10000)),                           # OI
+        f"{random.randint(10, 100)}%",                             # Chain %
+        str(random.choice(["True", "False"])),                     # Multileg
+    ]
+
+# 🔁 Run the script
+if __name__ == "__main__":
+    asyncio.run(send_fake_flow())
