@@ -10,6 +10,8 @@
     th, td { text-align: center; padding: 0.25rem; }
     th { background-color: #1e222a; color: #ad8eff; }
     tr:hover { background-color: #22252c; cursor: pointer; }
+    .highlight.call { background-color: #00b894; }
+    .highlight.put { background-color: #d63031; }
   </style>
 </head>
 <body>
@@ -18,22 +20,7 @@
     <div class="col-md-12">
       <table class="table table-dark table-bordered" id="flowTable">
         <thead><tr>
-          <th>Time</th>
-          <th>Ticker</th>
-          <th>Contract</th>
-          <th>DTE</th>
-          <th>Stock</th>
-          <th>OTM</th>
-          <th>Spot</th>
-          <th>AVG</th>
-          <th>%Change</th>
-          <th>Spot</th>
-          <th>Size</th>
-          <th>Premium</th>
-          <th>Volume</th>
-          <th>OI</th>
-          <th>Chain%</th>
-          <th>Multi</th>
+          <th>Time</th><th>Ticker</th><th>Contract</th><th>Side</th><th>DTE</th><th>Bid-Ask</th><th>Size</th><th>Premium</th>
         </tr></thead>
         <tbody></tbody>
       </table>
@@ -47,19 +34,30 @@
 
   ws.onmessage = event => {
     const row = JSON.parse(event.data);
-    if (!row || row.length < 16) return;
+    if (!row || !Array.isArray(row) || row.length < 16) return;
+
+    const displayRow = [
+      row[0],  // Time
+      row[1],  // Ticker
+      row[2],  // Contract (from Option Details)
+      row[3],  // Side
+      row[6],  // DTE
+      row[8],  // Bid-Ask
+      row[10], // Size
+      row[11]  // Premium
+    ];
 
     const tr = document.createElement('tr');
-    row.forEach(val => {
+    displayRow.forEach((val, i) => {
       const td = document.createElement('td');
       td.textContent = val;
       tr.appendChild(td);
     });
-
     tableBody.prepend(tr);
     if (tableBody.rows.length > 100) tableBody.deleteRow(-1);
   };
 </script>
 </body>
 </html>
+
 
