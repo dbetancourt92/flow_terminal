@@ -36,6 +36,17 @@
     const row = JSON.parse(event.data);
     if (!row || !Array.isArray(row) || row.length < 16) return;
 
+    const displayRow = [
+      row[0],  // Time
+      row[1],  // Ticker
+      row[2],  // Contract (from Option Details)
+      row[3],  // Side
+      row[6],  // DTE
+      row[8],  // Bid-Ask
+      row[10], // Size
+      row[11]  // Premium
+    ];
+
     const tr = document.createElement('tr');
     displayRow.forEach((val, i) => {
       const td = document.createElement('td');
