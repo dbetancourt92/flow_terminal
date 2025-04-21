@@ -3,83 +3,30 @@
 <head>
   <meta charset="UTF-8">
   <title>Options Flow Terminal</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body {
-      background-color: #0f1115;
-      color: white;
-      font-family: 'Segoe UI', sans-serif;
-    }
-
-    table {
-      width: 100%;
-      font-size: 0.9rem;
-    }
-
-    th, td {
-      text-align: center;
-      padding: 0.25rem;
-    }
-
-    th {
-      background-color: #1e222a;
-      color: #ad8eff;
-      text-transform: uppercase;
-    }
-
-    tr:hover {
-      background-color: #22252c;
-      cursor: pointer;
-    }
-
-    .highlight.call {
-      background-color: #00b894;
-    }
-
-    .highlight.put {
-      background-color: #d63031;
-    }
-
+    body { background-color: #0f1115; color: white; font-family: 'Segoe UI', sans-serif; }
+    table { width: 100%; font-size: 0.9rem; }
+    th, td { text-align: center; padding: 0.25rem; }
+    th { background-color: #1e222a; color: #ad8eff; }
+    tr:hover { background-color: #22252c; cursor: pointer; }
+    .highlight.call { background-color: #00b894; }
+    .highlight.put { background-color: #d63031; }
     .modal-chart {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0, 0, 0, 0.95);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 9999;
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.95); display: none;
+      align-items: center; justify-content: center; z-index: 9999;
     }
-
     .modal-content {
-      background: #1c1f26;
-      padding: 16px;
-      border-radius: 8px;
-      width: 95vw;
-      height: 80vh;
-      display: flex;
-      flex-direction: column;
+      background: #1c1f26; padding: 16px; border-radius: 8px;
+      width: 90vw; height: 80vh; display: flex; flex-direction: column;
     }
-
-    canvas {
-      flex-grow: 1;
-      max-width: 100%;
-    }
-
-    input, select {
-      background-color: #1e1e1e;
-      border: 1px solid #444;
-      color: white;
-    }
-
-    label {
-      font-size: 0.9rem;
-    }
+    canvas { flex-grow: 1; max-width: 100%; }
   </style>
 </head>
 <body>
-<div class="container-fluid mt-2">
+<div class="container-fluid">
   <div class="row">
     <div class="col-md-2">
       <input id="tickers" class="form-control mb-2" placeholder="Tickers (AAPL,TSLA)">
@@ -89,38 +36,27 @@
       <select id="side" class="form-select mb-2">
         <option>All</option><option>Bid</option><option>Ask</option>
       </select>
-      <input id="sizeMin" class="form-control mb-2" type="number" placeholder="Min Size">
-      <input id="sizeMax" class="form-control mb-2" type="number" placeholder="Max Size">
-      <input id="premiumMin" class="form-control mb-2" type="number" placeholder="Min Premium">
-      <input id="premiumMax" class="form-control mb-2" type="number" placeholder="Max Premium">
-      <input id="dteMin" class="form-control mb-2" type="number" placeholder="Min DTE">
-      <input id="dteMax" class="form-control mb-2" type="number" placeholder="Max DTE">
-      <div class="form-check">
-        <input class="form-check-input" type="checkbox" id="volGToi">
-        <label class="form-check-label" for="volGToi">Volume &gt; OI</label>
-      </div>
-      <div class="form-check">
-        <input class="form-check-input" type="checkbox" id="multiOnly">
-        <label class="form-check-label" for="multiOnly">Multi-leg only</label>
-      </div>
+      <input id="sizeMin" class="form-control mb-2" placeholder="Min Size">
+      <input id="sizeMax" class="form-control mb-2" placeholder="Max Size">
+      <input id="premiumMin" class="form-control mb-2" placeholder="Min Premium">
+      <input id="premiumMax" class="form-control mb-2" placeholder="Max Premium">
+      <input id="dteMax" class="form-control mb-2" placeholder="Max DTE">
+      <label><input type="checkbox" id="volGToi"> Volume > OI</label><br>
+      <label><input type="checkbox" id="multiOnly"> Multi-leg only</label>
     </div>
-
     <div class="col-md-10">
       <table class="table table-dark table-bordered" id="flowTable">
-        <thead>
-        <tr>
-          <th>Time</th><th>Ticker</th><th>Side</th><th>Strike</th><th>Type</th><th>Expiry</th>
-          <th>DTE</th><th>Stock</th><th>Bid-Ask</th><th>Spot</th><th>Size</th>
-          <th>Premium</th><th>Volume</th><th>OI</th><th>Chain%</th><th>Multi</th>
-        </tr>
-        </thead>
+        <thead><tr>
+          <th>Time</th><th>Ticker</th><th>Option Details</th><th>DTE</th><th>Strike</th><th>Stock</th>
+          <th>Bid-Ask</th><th>Spot</th><th>Size</th><th>Premium</th><th>Volume</th>
+          <th>OI</th><th>Chain%</th><th>Multi</th>
+        </tr></thead>
         <tbody></tbody>
       </table>
     </div>
   </div>
 </div>
 
-<!-- Chart Modal -->
 <div class="modal-chart" id="chartModal">
   <div class="modal-content">
     <button onclick="document.getElementById('chartModal').style.display='none'" class="btn btn-danger mb-2">Close</button>
@@ -133,62 +69,20 @@
   const ws = new WebSocket("wss://flow-terminal.onrender.com");
 
   ws.onmessage = event => {
-    try {
-      const row = JSON.parse(event.data);
-      if (!row || !Array.isArray(row) || row.length < 16) return;
+    const row = JSON.parse(event.data);
+    if (!row || !row.length || row.length < 14) return;
 
-      if (!passesFilters(row)) return;
-
-      const tr = document.createElement('tr');
-      row.forEach((val, i) => {
-        const td = document.createElement('td');
-        td.textContent = val;
-        if (i === 4) td.classList.add('highlight', val.toLowerCase());
-        tr.appendChild(td);
-      });
-
-      tr.addEventListener("click", () => showChart(row));
-      tableBody.prepend(tr);
-      if (tableBody.rows.length > 100) tableBody.deleteRow(-1);
-    } catch (e) {
-      console.error("Parsing error:", e);
-    }
+    const tr = document.createElement('tr');
+    row.forEach((val, i) => {
+      const td = document.createElement('td');
+      td.textContent = val;
+      if (i === 2) td.classList.add('highlight', val.toLowerCase().includes('put') ? 'put' : 'call');
+      tr.appendChild(td);
+    });
+    tr.addEventListener("click", () => showChart(row));
+    tableBody.prepend(tr);
+    if (tableBody.rows.length > 100) tableBody.deleteRow(-1);
   };
-
-  function passesFilters(row) {
-    const tickers = document.getElementById('tickers').value.toUpperCase().split(',').map(t => t.trim()).filter(Boolean);
-    const type = document.getElementById('type').value;
-    const side = document.getElementById('side').value;
-    const sizeMin = +document.getElementById('sizeMin').value || 0;
-    const sizeMax = +document.getElementById('sizeMax').value || Infinity;
-    const premMin = +document.getElementById('premiumMin').value || 0;
-    const premMax = +document.getElementById('premiumMax').value || Infinity;
-    const dteMin = +document.getElementById('dteMin').value || 0;
-    const dteMax = +document.getElementById('dteMax').value || Infinity;
-    const volGToi = document.getElementById('volGToi').checked;
-    const multiOnly = document.getElementById('multiOnly').checked;
-
-    const ticker = row[1].toUpperCase();
-    const rowSide = row[2];
-    const rowType = row[4];
-    const size = parseInt(row[10]);
-    const premium = parseInt(row[11].replace(/\$|K/g, '')) * (row[11].includes('K') ? 1000 : 1);
-    const volume = parseInt(row[12].replace(/,/g, ''));
-    const oi = parseInt(row[13].replace(/,/g, ''));
-    const dte = parseInt(row[6]);
-    const multi = row[15] === "True";
-
-    if (tickers.length && !tickers.includes(ticker)) return false;
-    if (type !== "Both" && rowType !== type) return false;
-    if (side !== "All" && rowSide !== side) return false;
-    if (size < sizeMin || size > sizeMax) return false;
-    if (premium < premMin || premium > premMax) return false;
-    if (dte < dteMin || dte > dteMax) return false;
-    if (volGToi && volume <= oi) return false;
-    if (multiOnly && !multi) return false;
-
-    return true;
-  }
 
   function showChart(data) {
     const modal = document.getElementById('chartModal');
@@ -200,26 +94,19 @@
       data: {
         labels: ["Size", "Premium", "Volume", "OI"],
         datasets: [{
-          label: `${data[1]} Flow`,
+          label: data[1] + " Flow",
           data: [
-            +data[10],
-            parseInt(data[11].replace(/\$|K/g, '')) * (data[11].includes('K') ? 1000 : 1),
-            parseInt(data[12].replace(/,/g, '')),
-            parseInt(data[13].replace(/,/g, ''))
-          ],
-          backgroundColor: "#ad8eff"
+            +data[8].replace(/[^\d.]/g, ''),
+            +data[9].replace(/[^\d.]/g, ''),
+            +data[10].replace(/[^\d.]/g, ''),
+            +data[11].replace(/[^\d.]/g, '')
+          ]
         }]
-      },
-      options: {
-        scales: {
-          y: {
-            beginAtZero: true
-          }
-        }
       }
     });
   }
 </script>
 </body>
 </html>
+
 
