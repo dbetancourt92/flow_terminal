@@ -1,10 +1,9 @@
+
 import asyncio
-import os
 import websockets
 
 clients = set()
 
-# ✅ MUST accept both websocket and path
 async def handler(websocket, path):
     clients.add(websocket)
     print(f"🟢 Connected: {websocket.remote_address}")
@@ -27,10 +26,11 @@ async def handler(websocket, path):
         print(f"🔴 Disconnected: {websocket.remote_address}")
 
 async def main():
-    PORT = int(os.environ.get("PORT", 8888))  # Fallback for local dev
+    import os
+    PORT = int(os.environ.get("PORT", 8888))
     print(f"✅ WebSocket running on ws://0.0.0.0:{PORT}")
     async with websockets.serve(handler, "0.0.0.0", PORT):
-        await asyncio.Future()  # Keeps server running
+        await asyncio.Future()
 
 if __name__ == "__main__":
     asyncio.run(main())
