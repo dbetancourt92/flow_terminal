@@ -1,85 +1,106 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Options Flow Terminal</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body {
-      background-color: #0f1115;
-      color: white;
-      font-family: 'Segoe UI', sans-serif;
+    body { background-color: #0f1115; color: white; font-family: 'Segoe UI', sans-serif; }
+    table { width: 100%; font-size: 0.9rem; }
+    th, td { text-align: center; padding: 0.25rem; }
+    th { background-color: #1e222a; color: #ad8eff; }
+    tr:hover { background-color: #22252c; cursor: pointer; }
+    .highlight.call { background-color: #00b894; }
+    .highlight.put { background-color: #d63031; }
+    .modal-chart {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.95); display: none;
+      align-items: center; justify-content: center; z-index: 9999;
     }
-    table {
-      width: 100%;
-      font-size: 0.9rem;
+    .modal-content {
+      background: #1c1f26; padding: 16px; border-radius: 8px;
+      width: 90vw; height: 80vh; display: flex; flex-direction: column;
     }
-    th, td {
-      text-align: center;
-      padding: 0.25rem;
-    }
-    th {
-      background-color: #1e222a;
-      color: #ad8eff;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-    tr:hover {
-      background-color: #22252c;
-      cursor: pointer;
-    }
-    .highlight.call {
-      background-color: #00b894;
-      border-radius: 10px;
-      padding: 2px 6px;
-      color: white;
-    }
-    .highlight.put {
-      background-color: #d63031;
-      border-radius: 10px;
-      padding: 2px 6px;
-      color: white;
-    }
+    canvas { flex-grow: 1; max-width: 100%; }
   </style>
 </head>
 <body>
-  <div class="container-fluid p-4">
-    <h2 class="mb-4">Live Options Flow</h2>
-    <table class="table table-dark table-bordered" id="flowTable">
-      <thead><tr>
-        <th>Time</th><th>Ticker</th><th>Side</th><th>Strike</th><th>Type</th><th>Expiry</th>
-        <th>DTE</th><th>Stock</th><th>Bid-Ask</th><th>Spot</th><th>Size</th>
-        <th>Premium</th><th>Volume</th><th>OI</th><th>Chain%</th><th>Multi</th>
-      </tr></thead>
-      <tbody></tbody>
-    </table>
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-2">
+      <input id="tickers" class="form-control mb-2" placeholder="Tickers (AAPL,TSLA)">
+      <select id="type" class="form-select mb-2">
+        <option>Both</option><option>Call</option><option>Put</option>
+      </select>
+      <select id="side" class="form-select mb-2">
+        <option>All</option><option>Bid</option><option>Ask</option>
+      </select>
+      <input id="sizeMin" class="form-control mb-2" placeholder="Min Size">
+      <input id="sizeMax" class="form-control mb-2" placeholder="Max Size">
+      <input id="premiumMin" class="form-control mb-2" placeholder="Min Premium">
+      <input id="premiumMax" class="form-control mb-2" placeholder="Max Premium">
+      <input id="dteMax" class="form-control mb-2" placeholder="Max DTE">
+      <label><input type="checkbox" id="volGToi"> Volume > OI</label><br>
+      <label><input type="checkbox" id="multiOnly"> Multi-leg only</label>
+    </div>
+    <div class="col-md-10">
+      <table class="table table-dark table-bordered" id="flowTable">
+        <thead><tr>
+          <th>Time</th><th>Ticker</th><th>Side</th><th>Strike</th><th>Type</th><th>Expiry</th>
+          <th>DTE</th><th>Stock</th><th>Bid-Ask</th><th>Spot</th><th>Size</th>
+          <th>Premium</th><th>Volume</th><th>OI</th><th>Chain%</th><th>Multi</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
   </div>
+</div>
 
-  <script>
-    const socket = new WebSocket("wss://flow-terminal.onrender.com/");
+<div class="modal-chart" id="chartModal">
+  <div class="modal-content">
+    <button onclick="document.getElementById('chartModal').style.display='none'" class="btn btn-danger mb-2">Close</button>
+    <canvas id="chartCanvas"></canvas>
+  </div>
+</div>
 
-    socket.onmessage = function(event) {
-      const data = JSON.parse(event.data);
-      const table = document.getElementById("flowTable").getElementsByTagName('tbody')[0];
-      const row = table.insertRow(0);
+<script>
+  const tableBody = document.querySelector('#flowTable tbody');
+  const ws = new WebSocket("wss://flow-terminal.onrender.com");
 
-      const typeClass = data.Type === "CALL" ? "highlight call" : "highlight put";
+  ws.onmessage = event => {
+    const row = JSON.parse(event.data);
+    if (!row || !row.length || row.length < 16) return;
 
-      const cells = [
-        data.Time, data.Ticker, data.Side, data.Strike,
-        `<span class='${typeClass}'>${data.Type}</span>`,
-        data.Expiry, data.DTE, data.Stock, data.BidAsk,
-        data.Spot, data.Size, data.Premium, data.Volume,
-        data.OI, data.ChainPct, data.Multi
-      ];
+    const tr = document.createElement('tr');
+    row.forEach((val, i) => {
+      const td = document.createElement('td');
+      td.textContent = val;
+      if (i === 4) td.classList.add('highlight', val.toLowerCase());
+      tr.appendChild(td);
+    });
+    tr.addEventListener("click", () => showChart(row));
+    tableBody.prepend(tr);
+    if (tableBody.rows.length > 100) tableBody.deleteRow(-1);
+  };
 
-      for (let cell of cells) {
-        const td = row.insertCell();
-        td.innerHTML = cell;
+  function showChart(data) {
+    const modal = document.getElementById('chartModal');
+    modal.style.display = 'flex';
+
+    const ctx = document.getElementById('chartCanvas').getContext('2d');
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: ["Size", "Premium", "Volume", "OI"],
+        datasets: [{
+          label: data[1] + " Flow",
+          data: [+data[10], parseFloat(data[11].replace(/\D/g,'')), +data[12].replace(/,/g,''), +data[13].replace(/,/g,'')]
+        }]
       }
-    };
-  </script>
+    });
+  }
+</script>
 </body>
 </html>
