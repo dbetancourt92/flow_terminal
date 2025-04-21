@@ -1,9 +1,10 @@
-
 import asyncio
 import websockets
+import os
 
 clients = set()
 
+# Handler for incoming websocket connections
 async def handler(websocket, path):
     clients.add(websocket)
     print(f"🟢 Connected: {websocket.remote_address}")
@@ -20,17 +21,17 @@ async def handler(websocket, path):
                         to_remove.add(client)
             clients.difference_update(to_remove)
     except Exception as e:
-        print(f"❌ Error in connection: {e}")
+        print(f"❌ Connection error: {e}")
     finally:
         clients.remove(websocket)
         print(f"🔴 Disconnected: {websocket.remote_address}")
 
+# Main server start logic
 async def main():
-    import os
-    PORT = int(os.environ.get("PORT", 8888))
-    print(f"✅ WebSocket running on ws://0.0.0.0:{PORT}")
-    async with websockets.serve(handler, "0.0.0.0", PORT):
-        await asyncio.Future()
+    port = int(os.environ.get("PORT", 8888))  # Render will set PORT
+    print(f"✅ WebSocket server starting on ws://0.0.0.0:{port}")
+    async with websockets.serve(handler, "0.0.0.0", port):
+        await asyncio.Future()  # Keep running
 
 if __name__ == "__main__":
     asyncio.run(main())
